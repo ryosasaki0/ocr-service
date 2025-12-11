@@ -1,0 +1,20 @@
+{
+    "name": "ocr-service",
+    "version": "1.0.0",
+    "description": "Google Cloud Document AI OCR Service",
+    "main": "main.js",
+    "scripts": {
+        "start": "node main.js"
+    },
+    "keywords": [
+        "ocr",
+        "document-ai",
+        "google-cloud"
+    ],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "@google-cloud/documentai": "^8.9.0",
+        "dotenv": "^16.4.5"
+    }
+}
