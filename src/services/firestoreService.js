@@ -6,10 +6,26 @@ const { Firestore, FieldValue } = require('@google-cloud/firestore')
 class FirestoreService {
   constructor() {
     const keyFilePath = process.env.KEY_FILE_PATH
-    this.db = new Firestore({
-      keyFilename: keyFilePath,
-      projectId: process.env.PROJECT_ID,
-    })
+    const projectId = process.env.PROJECT_ID
+    const databaseId = process.env.FIRESTORE_DATABASE_ID || 'ocr-service'
+
+    console.log('\n=== Firestore Configuration ===')
+    console.log(`Project ID: ${projectId}`)
+    console.log(`Key File Path: ${keyFilePath}`)
+    console.log(`Database ID: ${databaseId}`)
+
+    try {
+      this.db = new Firestore({
+        keyFilename: keyFilePath,
+        projectId: projectId,
+        databaseId: databaseId,
+      })
+      console.log('✓ Firestore client initialized')
+    } catch (error) {
+      console.error('✗ Failed to initialize Firestore client:', error)
+      throw error
+    }
+
     this.batchesCollection = this.db.collection('batches')
     this.documentsCollection = this.db.collection('documents')
   }
@@ -18,30 +34,75 @@ class FirestoreService {
    * バッチを作成
    */
   async createBatch(batchData) {
-    const docRef = this.batchesCollection.doc(batchData.batchId)
-    await docRef.set({
-      ...batchData,
-      createdAt: FieldValue.serverTimestamp(),
-    })
-    return batchData.batchId
+    console.log(`\n=== Creating Batch ===`)
+    console.log(`Batch ID: ${batchData.batchId}`)
+
+    try {
+      const docRef = this.batchesCollection.doc(batchData.batchId)
+      console.log(`Document reference: ${docRef.path}`)
+
+      const data = {
+        ...batchData,
+        createdAt: FieldValue.serverTimestamp(),
+      }
+      console.log(`Writing batch data with ${Object.keys(data).length} fields`)
+
+      await docRef.set(data)
+      console.log('✓ Batch created successfully')
+      return batchData.batchId
+    } catch (error) {
+      console.error('✗ Error creating batch:')
+      console.error(`  Error code: ${error.code}`)
+      console.error(`  Error message: ${error.message}`)
+      console.error(`  Error details: ${error.details}`)
+
+      if (error.code === 5) {
+        console.error('\nPossible causes:')
+        console.error('1. Firestore database does not exist in project')
+        console.error(
+          '2. Database is in wrong mode (Datastore instead of Native)'
+        )
+        console.error('3. Service account lacks Firestore permissions')
+        console.error(
+          `\nCheck database at: https://console.cloud.google.com/firestore/databases?project=${process.env.PROJECT_ID}`
+        )
+      }
+      throw error
+    }
   }
 
   /**
    * 複数のドキュメントを一括作成
    */
   async createDocuments(documents) {
-    const batch = this.db.batch()
+    console.log(`\n=== Creating Documents ===`)
+    console.log(`Number of documents: ${documents.length}`)
 
-    documents.forEach((doc) => {
-      const docRef = this.documentsCollection.doc(doc.documentId)
-      batch.set(docRef, {
-        ...doc,
-        status: 'pending',
-        createdAt: FieldValue.serverTimestamp(),
+    try {
+      const batch = this.db.batch()
+
+      documents.forEach((doc, index) => {
+        const docRef = this.documentsCollection.doc(doc.documentId)
+        if (index === 0) {
+          console.log(`First document reference: ${docRef.path}`)
+        }
+        batch.set(docRef, {
+          ...doc,
+          status: 'pending',
+          createdAt: FieldValue.serverTimestamp(),
+        })
       })
-    })
 
-    await batch.commit()
+      console.log('Committing batch write...')
+      await batch.commit()
+      console.log('✓ Documents created successfully')
+    } catch (error) {
+      console.error('✗ Error creating documents:')
+      console.error(`  Error code: ${error.code}`)
+      console.error(`  Error message: ${error.message}`)
+      console.error(`  Error details: ${error.details}`)
+      throw error
+    }
   }
 
   /**
