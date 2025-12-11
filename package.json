@@ -2,9 +2,11 @@
     "name": "ocr-service",
     "version": "1.0.0",
     "description": "Google Cloud Document AI OCR Service",
-    "main": "main.js",
+    "main": "src/api/server.js",
     "scripts": {
-        "start": "node main.js"
+        "start": "node main.js",
+        "start:api": "node src/api/server.js",
+        "start:worker": "node src/worker/index.js"
     },
     "keywords": [
         "ocr",
@@ -15,6 +17,13 @@
     "license": "ISC",
     "dependencies": {
         "@google-cloud/documentai": "^8.9.0",
-        "dotenv": "^16.4.5"
+        "@google-cloud/firestore": "^7.10.0",
+        "@google-cloud/pubsub": "^4.10.0",
+        "@google-cloud/storage": "^7.14.0",
+        "dotenv": "^16.4.5",
+        "express": "^4.21.2",
+        "multer": "^1.4.5-lts.1",
+        "pdf-lib": "^1.17.1",
+        "uuid": "^11.0.3"
     }
 }
