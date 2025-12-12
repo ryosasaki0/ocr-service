@@ -89,6 +89,11 @@ class DocumentAIService {
             result[key] = {
               value: value,
               confidence: confidence,
+              // 座標情報を追加
+              coordinates: {
+                fieldName: this.getBoundingBox(field.fieldName),
+                fieldValue: this.getBoundingBox(field.fieldValue),
+              },
             }
           }
         })
@@ -97,6 +102,7 @@ class DocumentAIService {
         result['全文テキスト'] = {
           value: document.text || '',
           confidence: 1.0,
+          coordinates: null,
         }
       }
     } else {
@@ -104,10 +110,51 @@ class DocumentAIService {
       result['全文テキスト'] = {
         value: document.text || '',
         confidence: 1.0,
+        coordinates: null,
       }
     }
 
     return result
+  }
+
+  /**
+   * バウンディングボックス（座標）を取得
+   * @param {Object} layoutField - Document AIのlayoutオブジェクト
+   * @returns {Object|null} - 座標情報 {x, y, width, height} または null
+   */
+  getBoundingBox(layoutField) {
+    if (
+      !layoutField ||
+      !layoutField.boundingPoly ||
+      !layoutField.boundingPoly.normalizedVertices ||
+      layoutField.boundingPoly.normalizedVertices.length === 0
+    ) {
+      return null
+    }
+
+    const vertices = layoutField.boundingPoly.normalizedVertices
+
+    // 正規化座標 (0.0 ~ 1.0) から座標を取得
+    // vertices[0] = 左上, vertices[1] = 右上, vertices[2] = 右下, vertices[3] = 左下
+    const x = vertices[0].x || 0
+    const y = vertices[0].y || 0
+    const width = (vertices[1].x || 0) - x
+    const height = (vertices[2].y || 0) - y
+
+    return {
+      // 正規化座標 (0.0 ~ 1.0)
+      normalized: {
+        x: x,
+        y: y,
+        width: width,
+        height: height,
+      },
+      // 頂点座標（4点）
+      vertices: vertices.map((v) => ({
+        x: v.x || 0,
+        y: v.y || 0,
+      })),
+    }
   }
 
   /**
